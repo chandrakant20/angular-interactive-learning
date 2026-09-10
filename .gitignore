@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Angular build output and caches
+dist/
+.angular/
+
+# Capacitor / Android generated project and local build files
+android/
+.tools/
+
+# APK artifacts
+*.apk
+*.aab
+
+# Machine-specific Android configuration
+local.properties
+
+# Editor and OS files
+.DS_Store
+.vscode/

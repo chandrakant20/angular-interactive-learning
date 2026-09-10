@@ -1,0 +1,160 @@
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Angular Atlas home">
+      <span class="brand-mark">A</span>
+      <span>Angular <em>Atlas</em></span>
+    </a>
+    <div class="top-actions">
+      <span class="runtime-pill"><span class="pulse"></span> Angular learning path</span>
+      <button class="interview-link" type="button" (click)="showInterview.set(!showInterview())">Interview Q&amp;A</button>
+      <button class="icon-button" type="button" aria-label="Search lessons">⌕</button>
+      <div class="avatar">CG</div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">A field guide for curious builders</p>
+        <h1>Learn Angular<br><span>by making sense of it.</span></h1>
+        <p class="hero-intro">A calm, practical path from your first component to production architecture. Short lessons, plain English, and code you can recognize in the wild.</p>
+        <div class="hero-actions">
+          <button class="primary-button" type="button" (click)="selectLesson(1)">Start the path <span>→</span></button>
+          <span class="micro-note">{{ trackLessons().length }} lessons · your pace</span>
+        </div>
+      </div>
+      <div class="hero-orbit" aria-label="Learning progress visualization">
+        <div class="orbit orbit-one"></div>
+        <div class="orbit orbit-two"></div>
+        <div class="orbit-core"><strong>{{ progress() }}%</strong><span>mapped</span></div>
+        <span class="orbit-label label-top">components</span>
+        <span class="orbit-label label-right">signals</span>
+        <span class="orbit-label label-bottom">architecture</span>
+      </div>
+    </section>
+
+    <section class="track-switcher" aria-label="Choose a learning track">
+      <div><span class="section-kicker">Choose your path</span><h2>Learn the web layer by layer</h2></div>
+      <div class="track-tabs">
+        @for (track of tracks; track track) {
+          <button type="button" [class.active]="activeTrack() === track" (click)="selectTrack(track)"><span class="track-icon">{{ track === 'Angular' ? 'A' : track[0] }}</span>{{ track }}</button>
+        }
+      </div>
+    </section>
+
+    @if (showInterview()) {
+      <section class="interview-section" id="interview" aria-label="Angular interview questions">
+        <div class="interview-header">
+          <div><p class="eyebrow">Revision room</p><h2>Angular interview Q&amp;A</h2><p>Practice the questions recruiters and senior engineers use to check Angular fundamentals, architecture, and production judgment.</p></div>
+          <button class="close-interview" type="button" (click)="showInterview.set(false)">Close ×</button>
+        </div>
+        <nav class="interview-tabs" aria-label="Interview topic tracks">
+          @for (track of tracks; track track) {
+            <button type="button" [class.active]="interviewTrack() === track" (click)="selectInterviewTrack(track)">{{ track }} <span>{{ interviewCount(track) }}</span></button>
+          }
+        </nav>
+        <section class="live-practice" aria-label="Real-time interview practice">
+          @if (!liveInterview()) {
+            <div class="live-intro"><div><span class="small-label">Live practice</span><h3>Interview me on {{ interviewTrack() }}</h3><p>Answer one question at a time. You have 30 seconds, then you’ll see the answer and reasoning.</p></div><button class="live-start" type="button" (click)="startLiveInterview()">Start live round <span>→</span></button></div>
+          } @else {
+            <div class="live-meta"><span>Question {{ liveQuestionIndex() + 1 }} of {{ liveQuestions().length }}</span><span class="live-timer" [class.urgent]="liveSeconds() <= 10">00:{{ liveSeconds().toString().padStart(2, '0') }}</span><span>Score {{ liveScore() }}</span></div>
+            <p class="live-topic">{{ liveQuestion().topic }}</p>
+            <h3 class="live-question-text">{{ liveQuestion().question }}</h3>
+            <div class="live-options">@for (option of liveQuestion().options; track option; let optionIndex = $index) { <button type="button" [class.chosen]="liveChoice() === optionIndex" [class.correct]="liveAnswered() && optionIndex === liveQuestion().answer" [class.incorrect]="liveAnswered() && liveChoice() === optionIndex && optionIndex !== liveQuestion().answer" (click)="liveChoice.set(optionIndex)"><span>{{ ['A', 'B', 'C'][optionIndex] }}</span>{{ option }}</button> }</div>
+            <div class="live-footer">@if (liveAnswered()) { <p class="live-feedback" [class.good]="liveChoice() === liveQuestion().answer">{{ liveChoice() === liveQuestion().answer ? 'Correct. ' : 'Not quite. ' }}{{ liveQuestion().explanation }}</p><button class="live-next" type="button" (click)="nextLiveQuestion()">Next question <span>→</span></button> } @else { <button class="live-submit" type="button" [disabled]="liveChoice() === null" (click)="submitLiveAnswer()">Submit answer <span>→</span></button><button class="live-exit" type="button" (click)="stopLiveInterview()">Exit round</button> }</div>
+          }
+        </section>
+        <div class="interview-grid">
+          @for (item of interviewItems(); track item.lesson.id) {
+            <article class="interview-topic" [class.expanded]="expandedInterviewTopic() === item.lesson.id">
+              <button class="interview-topic-heading" type="button" (click)="toggleInterviewTopic(item.lesson.id)" [attr.aria-expanded]="expandedInterviewTopic() === item.lesson.id"><span class="lesson-number" [class]="'accent-' + item.lesson.accent">{{ item.lesson.id.toString().padStart(2, '0') }}</span><span><span class="lesson-level">{{ item.lesson.level }}</span><strong>{{ item.lesson.title }}</strong></span><span class="topic-toggle">{{ expandedInterviewTopic() === item.lesson.id ? '−' : '+' }}</span></button>
+              <div class="interview-topic-questions">
+              @for (question of item.questions; track question.question; let questionIndex = $index) {
+                <div class="interview-question">
+                  <p><strong>Q{{ questionIndex + 1 }}</strong>{{ question.question }}</p>
+                  <button class="reveal-answer" type="button" (click)="toggleAnswer(interviewKey(item.lesson.id, questionIndex))">{{ isAnswerChecked(interviewKey(item.lesson.id, questionIndex)) ? 'Hide answer' : 'Reveal answer' }} <span>→</span></button>
+                  @if (isAnswerChecked(interviewKey(item.lesson.id, questionIndex))) {
+                    <div class="interview-answer"><span>Answer</span><strong>{{ question.options[question.answer] }}</strong><p>{{ question.explanation }}</p></div>
+                  }
+                </div>
+              }
+              </div>
+            </article>
+          }
+        </div>
+      </section>
+    }
+
+    <section class="workspace" aria-label="Angular curriculum">
+      <aside class="sidebar">
+        <div class="sidebar-heading">
+          <span class="section-kicker">Your curriculum</span>
+            <strong>{{ trackLessons().filter((lesson) => isComplete(lesson.id)).length }}/{{ trackLessons().length }}</strong>
+        </div>
+        <div class="progress-track"><span [style.width.%]="progress()"></span></div>
+        <p class="progress-copy">{{ progress() }}% of the path explored</p>
+
+        <nav class="filter-list" aria-label="Filter lessons">
+          @for (filter of filters; track filter) {
+            <button type="button" [class.active]="activeFilter() === filter" (click)="activeFilter.set(filter)">
+              <span class="filter-dot" [class.dot-main]="filter === 'All'"></span>{{ filter }}
+              @if (filter === 'All') { <span class="filter-count">{{ lessons.length }}</span> }
+            </button>
+          }
+        </nav>
+
+        <div class="sidebar-note">
+          <span class="note-mark">✦</span>
+          <div><strong>Small steps compound.</strong><p>Finish one lesson today. Your future self will thank you.</p></div>
+        </div>
+      </aside>
+
+      <div class="lesson-list" id="lesson-list">
+        <div class="list-header">
+          <div><span class="section-kicker">Choose a lesson</span><h2>Build your mental model</h2></div>
+          <div class="lesson-tools"><label class="search-box"><span>⌕</span><input type="search" placeholder="Search topics" [value]="searchTerm()" (input)="updateSearch($event)" /></label><span class="lesson-total">{{ visibleLessons().length }} shown</span></div>
+        </div>
+        <div class="lesson-cards">
+          @for (lesson of visibleLessons(); track lesson.id) {
+            <button type="button" class="lesson-card" [class.selected]="selectedId() === lesson.id" [attr.aria-expanded]="expandedLessonId() === lesson.id" (click)="toggleLesson(lesson.id)">
+              <span class="lesson-number" [class]="'accent-' + lesson.accent">{{ lesson.id.toString().padStart(2, '0') }}</span>
+              <span class="lesson-card-body"><span class="lesson-level">{{ lesson.level }} <i>·</i> {{ lesson.duration }}</span><strong>{{ lesson.title }}</strong><span>{{ lesson.summary }}</span></span>
+              @if (isComplete(lesson.id)) { <span class="done-check">✓</span> } @else { <span class="card-arrow">↗</span> }
+            </button>
+            @if (expandedLessonId() === lesson.id) {
+              <article class="inline-lesson-panel" [id]="'inline-lesson-' + lesson.id">
+                <div class="inline-panel-top"><span class="lesson-tag">{{ selectedLesson().tag }}</span><span>{{ selectedLesson().sections.length }} sections</span></div>
+                <h3>{{ selectedLesson().title }}</h3>
+                <p class="inline-summary">{{ selectedLesson().summary }}</p>
+                <div class="inline-analogy"><span>◎</span><p>{{ selectedLesson().analogy }}</p></div>
+                @for (section of selectedLesson().sections; track section.title; let sectionIndex = $index) {
+                  <section class="inline-section"><span class="detail-index">{{ (sectionIndex + 1).toString().padStart(2, '0') }}</span><div><h4>{{ section.title }}</h4><p>{{ section.explanation }}</p><pre><code>{{ section.example }}</code></pre>@if (section.notes) { <ul>@for (note of section.notes; track note) { <li>{{ note }}</li> }</ul> }<div class="inline-check"><span class="small-label">Check this section</span><button class="qa-question" type="button" [attr.aria-expanded]="expandedQuestionKey() === sectionQuestionKey(sectionIndex)" (click)="toggleQuestion(sectionQuestionKey(sectionIndex))"><strong>Q:</strong><span>{{ sectionQuestion(sectionIndex).question }}</span><b>{{ expandedQuestionKey() === sectionQuestionKey(sectionIndex) ? '−' : '+' }}</b></button>@if (expandedQuestionKey() === sectionQuestionKey(sectionIndex)) { <div class="qa-answer"><div class="section-options">@for (option of sectionQuestion(sectionIndex).options; track option; let optionIndex = $index) { <button type="button" [class.chosen]="answerFor(sectionQuestionKey(sectionIndex)) === optionIndex" [class.correct]="isAnswerChecked(sectionQuestionKey(sectionIndex)) && optionIndex === sectionQuestion(sectionIndex).answer" [class.incorrect]="isAnswerChecked(sectionQuestionKey(sectionIndex)) && answerFor(sectionQuestionKey(sectionIndex)) === optionIndex && optionIndex !== sectionQuestion(sectionIndex).answer" (click)="chooseAnswer(sectionQuestionKey(sectionIndex), optionIndex)"><span>{{ ['A', 'B', 'C'][optionIndex] }}</span>{{ option }}</button> }</div><button class="check-button" type="button" (click)="checkAnswer(sectionQuestionKey(sectionIndex))">Check answer <span>→</span></button>@if (isAnswerChecked(sectionQuestionKey(sectionIndex))) { <p class="inline-answer" [class.good]="answerFor(sectionQuestionKey(sectionIndex)) === sectionQuestion(sectionIndex).answer">{{ sectionQuestion(sectionIndex).explanation }}</p> }</div> }</div></div></section>
+                }
+                <button class="inline-complete" type="button" [class.is-done]="isComplete(lesson.id)" (click)="toggleComplete()">{{ isComplete(lesson.id) ? '✓ Lesson complete' : '○ Mark lesson complete' }}</button>
+              </article>
+            }
+          } @empty {
+            <p class="empty-state">No lessons in this chapter yet.</p>
+          }
+        </div>
+      </div>
+
+      <article class="lesson-detail" id="lesson-detail">
+        <div class="detail-topline"><span class="lesson-tag">{{ selectedLesson().tag }}</span><span>Lesson {{ selectedLesson().id }} of {{ trackLessons().length }}</span></div>
+        <h2>{{ selectedLesson().title }}</h2>
+        <p class="detail-summary">{{ selectedLesson().summary }}</p>
+        <div class="lesson-rule"></div>
+
+        <section class="analogy-box"><span class="analogy-icon">◎</span><div><span class="small-label">An easy way to picture it</span><p>{{ selectedLesson().analogy }}</p></div></section>
+        <div class="section-map"><span>In this lesson</span><strong>{{ selectedLesson().sections.length }} detailed sections · {{ selectedLesson().questions.length }} questions</strong></div>
+        @for (section of selectedLesson().sections; track section.title; let index = $index) {
+          <section class="content-section" [class.highlight-section]="index === 0"><span class="detail-index">{{ (index + 1).toString().padStart(2, '0') }}</span><div><h3>{{ section.title }}</h3><p>{{ section.explanation }}</p><pre><code>{{ section.example }}</code></pre>@if (section.notes) { <ul class="section-notes">@for (note of section.notes; track note) { <li>{{ note }}</li> }</ul> }<div class="section-check"><span class="small-label">Check this section</span><button class="qa-question" type="button" [attr.aria-expanded]="expandedQuestionKey() === sectionQuestionKey(index)" (click)="toggleQuestion(sectionQuestionKey(index))"><strong>Q:</strong><span>{{ sectionQuestion(index).question }}</span><b>{{ expandedQuestionKey() === sectionQuestionKey(index) ? '−' : '+' }}</b></button>@if (expandedQuestionKey() === sectionQuestionKey(index)) { <div class="qa-answer"><div class="section-options">@for (option of sectionQuestion(index).options; track option; let optionIndex = $index) { <button type="button" [class.chosen]="answerFor(sectionQuestionKey(index)) === optionIndex" [class.correct]="isAnswerChecked(sectionQuestionKey(index)) && optionIndex === sectionQuestion(index).answer" [class.incorrect]="isAnswerChecked(sectionQuestionKey(index)) && answerFor(sectionQuestionKey(index)) === optionIndex && optionIndex !== sectionQuestion(index).answer" (click)="chooseAnswer(sectionQuestionKey(index), optionIndex)"><span>{{ ['A', 'B', 'C'][optionIndex] }}</span>{{ option }}</button> }</div><div class="section-check-footer"><button class="check-button" type="button" (click)="checkAnswer(sectionQuestionKey(index))">Check answer <span>→</span></button>@if (isAnswerChecked(sectionQuestionKey(index))) { <span class="answer-explanation" [class.good]="answerFor(sectionQuestionKey(index)) === sectionQuestion(index).answer">{{ answerFor(sectionQuestionKey(index)) === sectionQuestion(index).answer ? 'Correct. ' : 'Not quite. ' }}{{ sectionQuestion(index).explanation }}</span> }</div></div> }</div></div></section>
+        }
+        <section class="takeaway"><span>Key takeaway</span><p>{{ selectedLesson().takeaway }}</p></section>
+
+        <button class="complete-button" type="button" [class.is-done]="isComplete(selectedLesson().id)" (click)="toggleComplete()"><span>{{ isComplete(selectedLesson().id) ? '✓' : '○' }}</span>{{ isComplete(selectedLesson().id) ? 'Lesson complete' : 'Mark lesson complete' }}</button>
+        <button class="back-topics-button" type="button" (click)="backToTopics()">↑ Back to topics</button>
+      </article>
+    </section>
+  </main>
+</div>
