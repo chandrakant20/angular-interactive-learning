@@ -38,3 +38,17 @@ android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 After changing Angular code, run `npm run mobile:build` again before running the Android app so the latest lessons are copied into the native project.
+
+## Neural lesson audio
+
+The detailed core lessons include generated Piper neural voice audio in `public/audio`. The app plays those WAV files first and falls back to the browser voice for sections without an audio asset.
+
+To regenerate the audio on a Mac:
+
+```bash
+python3 -m venv .tts-env
+.tts-env/bin/python -m pip install piper-tts
+mkdir -p .tools/piper-voices
+.tts-env/bin/python -m piper.download_voices --download-dir .tools/piper-voices en_US-lessac-medium
+npm run generate:audio
+```

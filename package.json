@@ -5,6 +5,7 @@
     "start": "ng serve",
     "build": "ng build",
     "test": "ng test",
+    "generate:audio": "tsx scripts/generate-piper-audio.ts",
     "mobile:build": "npm run build && npx cap sync android",
     "android": "npm run mobile:build && npx cap open android"
   },
@@ -27,6 +28,7 @@
     "@angular/cli": "^21.0.0",
     "@angular/compiler-cli": "^21.0.0",
     "@capacitor/cli": "^8.5.1",
+    "tsx": "^4.23.13",
     "typescript": "~5.9.0"
   }
 }

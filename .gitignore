@@ -8,6 +8,7 @@ dist/
 # Capacitor / Android generated project and local build files
 android/
 .tools/
+.tts-env/
 
 # APK artifacts
 *.apk

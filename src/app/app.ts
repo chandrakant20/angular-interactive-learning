@@ -57,6 +57,12 @@ export class App {
   readonly liveAnswered = signal(false);
   readonly liveScore = signal(0);
   readonly liveSeconds = signal(30);
+  readonly speakingSection = signal<number | null>(null);
+  readonly availableVoices = signal<SpeechSynthesisVoice[]>([]);
+  readonly selectedVoiceName = signal('');
+  readonly speechRate = signal(0.88);
+  private speech: SpeechSynthesisUtterance | null = null;
+  private audio: HTMLAudioElement | null = null;
   readonly tracks: Lesson['track'][] = ['Angular', 'HTML', 'CSS', 'JavaScript', 'TypeScript'];
   readonly filters = ['All', 'Start here', 'Build the basics', 'Build real apps', 'Go further'];
   readonly trackLessons = computed(() => this.lessons.filter((lesson) => lesson.track === this.activeTrack()));
@@ -94,6 +100,18 @@ export class App {
       }, 1000);
       onCleanup(() => window.clearInterval(timer));
     });
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices().filter((voice) => voice.lang.toLowerCase().startsWith('en'));
+        this.availableVoices.set(voices);
+        if (!this.selectedVoiceName() && voices.length) {
+          const preferred = voices.find((voice) => /premium|enhanced|natural|samantha|alex|google us english/i.test(voice.name)) ?? voices.find((voice) => voice.default) ?? voices[0];
+          this.selectedVoiceName.set(preferred.name);
+        }
+      };
+      loadVoices();
+      window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+    }
   }
 
   selectLesson(id: number) {
@@ -217,6 +235,63 @@ export class App {
 
   toggleQuestion(key: string) {
     this.expandedQuestionKey.update((current) => current === key ? null : key);
+  }
+
+  listenToSection(sectionIndex: number) {
+    const audioPath = `/audio/lesson-${this.selectedLesson().id}-section-${sectionIndex}.wav`;
+    if (typeof window !== 'undefined') {
+      this.audio?.pause();
+      this.audio = new Audio(audioPath);
+      this.audio.onended = () => this.speakingSection.set(null);
+      this.audio.onerror = () => {
+        this.audio = null;
+        this.speakSectionWithBrowserVoice(sectionIndex);
+      };
+      this.speakingSection.set(sectionIndex);
+      this.audio.play().catch(() => this.speakSectionWithBrowserVoice(sectionIndex));
+      return;
+    }
+    this.speakSectionWithBrowserVoice(sectionIndex);
+  }
+
+  private speakSectionWithBrowserVoice(sectionIndex: number) {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (this.speakingSection() === sectionIndex) {
+      window.speechSynthesis.cancel();
+      this.speakingSection.set(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const section = this.selectedLesson().sections[sectionIndex];
+    const text = `${section.title}. ${section.explanation}. Example. ${section.example}`;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = this.speechRate();
+    utterance.pitch = 0.96;
+    utterance.volume = 1;
+    const voice = this.availableVoices().find((candidate) => candidate.name === this.selectedVoiceName());
+    if (voice) utterance.voice = voice;
+    utterance.onend = () => this.speakingSection.set(null);
+    utterance.onerror = () => this.speakingSection.set(null);
+    this.speech = utterance;
+    this.speakingSection.set(sectionIndex);
+    window.speechSynthesis.speak(utterance);
+  }
+
+  stopAudio() {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    this.audio?.pause();
+    this.audio = null;
+    this.speakingSection.set(null);
+  }
+
+  updateVoice(event: Event) {
+    this.selectedVoiceName.set((event.target as HTMLSelectElement).value);
+    this.stopAudio();
+  }
+
+  updateSpeechRate(event: Event) {
+    this.speechRate.set(Number((event.target as HTMLInputElement).value));
   }
 
   answerFor(key: string) {
