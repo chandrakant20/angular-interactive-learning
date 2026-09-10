@@ -126,6 +126,7 @@
                 <div class="inline-panel-top"><span class="lesson-tag">{{ selectedLesson().tag }}</span><span>{{ selectedLesson().sections.length }} sections</span></div>
                 <h3>{{ selectedLesson().title }}</h3>
                 <p class="inline-summary">{{ selectedLesson().summary }}</p>
+                <div class="audio-transport inline-transport" [class.active]="speakingSection() !== null" aria-label="Audio playback controls"><span>{{ speakingSection() === null ? 'Ready to listen' : (audioPaused() ? 'Paused' : 'Playing') }}</span>@if (speakingSection() !== null) { <button type="button" (click)="toggleAudioPause()">{{ audioPaused() ? '▶ Resume' : 'Ⅱ Pause' }}</button><button type="button" (click)="stopAudio()">■ Stop</button> }</div>
                 <div class="inline-analogy"><span>◎</span><p>{{ selectedLesson().analogy }}</p></div>
                 <div class="audio-settings inline-audio-settings" aria-label="Audio settings"><span class="small-label">Audio</span>@if (availableVoices().length) { <select [value]="selectedVoiceName()" (change)="updateVoice($event)">@for (voice of availableVoices(); track voice.name) { <option [value]="voice.name">{{ voice.name }}</option> }</select> }<label>Speed <input type="range" min="0.7" max="1.1" step="0.02" [value]="speechRate()" (input)="updateSpeechRate($event)" /> <span>{{ speechRate().toFixed(2) }}x</span></label></div>
                 @for (section of selectedLesson().sections; track section.title; let sectionIndex = $index) {
@@ -147,6 +148,7 @@
         <div class="lesson-rule"></div>
 
         <section class="analogy-box"><span class="analogy-icon">◎</span><div><span class="small-label">An easy way to picture it</span><p>{{ selectedLesson().analogy }}</p></div></section>
+        <div class="audio-transport" [class.active]="speakingSection() !== null" aria-label="Audio playback controls"><span>{{ speakingSection() === null ? 'Ready to listen' : (audioPaused() ? 'Paused' : 'Playing') }}</span>@if (speakingSection() !== null) { <button type="button" (click)="toggleAudioPause()">{{ audioPaused() ? '▶ Resume' : 'Ⅱ Pause' }}</button><button type="button" (click)="stopAudio()">■ Stop</button> }</div>
         <div class="section-map"><span>In this lesson</span><strong>{{ selectedLesson().sections.length }} detailed sections · {{ selectedLesson().questions.length }} questions</strong></div>
         <div class="audio-settings" aria-label="Audio settings">
           <span class="small-label">Audio voice</span>

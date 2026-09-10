@@ -58,6 +58,7 @@ export class App {
   readonly liveScore = signal(0);
   readonly liveSeconds = signal(30);
   readonly speakingSection = signal<number | null>(null);
+  readonly audioPaused = signal(false);
   readonly availableVoices = signal<SpeechSynthesisVoice[]>([]);
   readonly selectedVoiceName = signal('');
   readonly speechRate = signal(0.88);
@@ -248,6 +249,7 @@ export class App {
         this.speakSectionWithBrowserVoice(sectionIndex);
       };
       this.speakingSection.set(sectionIndex);
+      this.audioPaused.set(false);
       this.audio.play().catch(() => this.speakSectionWithBrowserVoice(sectionIndex));
       return;
     }
@@ -275,13 +277,37 @@ export class App {
     utterance.onerror = () => this.speakingSection.set(null);
     this.speech = utterance;
     this.speakingSection.set(sectionIndex);
+    this.audioPaused.set(false);
     window.speechSynthesis.speak(utterance);
+  }
+
+  toggleAudioPause() {
+    if (this.audio) {
+      if (this.audio.paused) {
+        this.audio.play().catch(() => undefined);
+        this.audioPaused.set(false);
+      } else {
+        this.audio.pause();
+        this.audioPaused.set(true);
+      }
+      return;
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+        this.audioPaused.set(false);
+      } else {
+        window.speechSynthesis.pause();
+        this.audioPaused.set(true);
+      }
+    }
   }
 
   stopAudio() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
     this.audio?.pause();
     this.audio = null;
+    this.audioPaused.set(false);
     this.speakingSection.set(null);
   }
 
