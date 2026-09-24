@@ -39,16 +39,16 @@ android/app/build/outputs/apk/debug/app-debug.apk
 
 After changing Angular code, run `npm run mobile:build` again before running the Android app so the latest lessons are copied into the native project.
 
-## Neural lesson audio
+## Natural lesson audio
 
-The detailed core lessons include generated Piper neural voice audio in `public/audio`. The app plays those WAV files first and falls back to the browser voice for sections without an audio asset.
+Lesson audio is generated with the `edge-tts.js` Node package using Microsoft Edge neural voices. It needs an internet connection only while generating files; no API key, backend, or running voice service is required. Generated MP3 files are stored in `public/audio` and played as static lesson audio.
 
-To regenerate the audio on a Mac:
-
-```bash
-python3 -m venv .tts-env
-.tts-env/bin/python -m pip install piper-tts
-mkdir -p .tools/piper-voices
-.tts-env/bin/python -m piper.download_voices --download-dir .tools/piper-voices en_US-lessac-medium
+```sh
 npm run generate:audio
+```
+
+The default voice is `en-US-EmmaMultilingualNeural`. Choose a different voice or pace when generating:
+
+```sh
+EDGE_TTS_VOICE=en-US-AndrewMultilingualNeural EDGE_TTS_RATE=-8% npm run generate:audio
 ```

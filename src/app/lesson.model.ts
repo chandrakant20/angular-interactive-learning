@@ -1,6 +1,6 @@
 export interface Lesson {
   id: number;
-  track?: 'Angular' | 'HTML' | 'CSS' | 'JavaScript' | 'TypeScript';
+  track?: 'Angular' | 'HTML' | 'CSS' | 'JavaScript' | 'TypeScript' | 'Node.js';
   level: string;
   title: string;
   summary: string;

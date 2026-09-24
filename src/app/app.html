@@ -2,10 +2,10 @@
   <header class="topbar">
     <a class="brand" href="#top" aria-label="Angular Atlas home">
       <span class="brand-mark">A</span>
-      <span>Angular <em>Atlas</em></span>
+      <span>Web <em>Atlas</em></span>
     </a>
     <div class="top-actions">
-      <span class="runtime-pill"><span class="pulse"></span> Angular learning path</span>
+      <span class="runtime-pill"><span class="pulse"></span> {{ activeTrack() }} learning path</span>
       <button class="interview-link" type="button" (click)="showInterview.set(!showInterview())">Interview Q&amp;A</button>
       <button class="icon-button" type="button" aria-label="Search lessons">⌕</button>
       <div class="avatar">CG</div>
@@ -16,10 +16,10 @@
     <section class="hero">
       <div class="hero-copy">
         <p class="eyebrow">A field guide for curious builders</p>
-        <h1>Learn Angular<br><span>by making sense of it.</span></h1>
-        <p class="hero-intro">A calm, practical path from your first component to production architecture. Short lessons, plain English, and code you can recognize in the wild.</p>
+        <h1>Learn {{ activeTrack() }}<br><span>by making sense of it.</span></h1>
+        <p class="hero-intro">A calm, practical path from first principles to real-world projects. Short lessons, plain English, and code you can recognize in the wild.</p>
         <div class="hero-actions">
-          <button class="primary-button" type="button" (click)="selectLesson(1)">Start the path <span>→</span></button>
+          <button class="primary-button" type="button" (click)="selectLesson(trackLessons()[0].id)">Start the path <span>→</span></button>
           <span class="micro-note">{{ trackLessons().length }} lessons · your pace</span>
         </div>
       </div>
@@ -43,9 +43,9 @@
     </section>
 
     @if (showInterview()) {
-      <section class="interview-section" id="interview" aria-label="Angular interview questions">
+      <section class="interview-section" id="interview" aria-label="Topic review questions">
         <div class="interview-header">
-          <div><p class="eyebrow">Revision room</p><h2>Angular interview Q&amp;A</h2><p>Practice the questions recruiters and senior engineers use to check Angular fundamentals, architecture, and production judgment.</p></div>
+          <div><p class="eyebrow">Revision room</p><h2>{{ interviewTrack() }} interview Q&amp;A</h2><p>Practice the questions recruiters and senior engineers use to check fundamentals, architecture, and production judgment.</p></div>
           <button class="close-interview" type="button" (click)="showInterview.set(false)">Close ×</button>
         </div>
         <nav class="interview-tabs" aria-label="Interview topic tracks">
@@ -98,7 +98,7 @@
           @for (filter of filters; track filter) {
             <button type="button" [class.active]="activeFilter() === filter" (click)="activeFilter.set(filter)">
               <span class="filter-dot" [class.dot-main]="filter === 'All'"></span>{{ filter }}
-              @if (filter === 'All') { <span class="filter-count">{{ lessons.length }}</span> }
+              @if (filter === 'All') { <span class="filter-count">{{ trackLessons().length }}</span> }
             </button>
           }
         </nav>
@@ -128,7 +128,7 @@
                 <p class="inline-summary">{{ selectedLesson().summary }}</p>
                 <div class="audio-transport inline-transport" [class.active]="speakingSection() !== null" aria-label="Audio playback controls"><span>{{ speakingSection() === null ? 'Ready to listen' : (audioPaused() ? 'Paused' : 'Playing') }}</span>@if (speakingSection() !== null) { <button type="button" (click)="toggleAudioPause()">{{ audioPaused() ? '▶ Resume' : 'Ⅱ Pause' }}</button><button type="button" (click)="stopAudio()">■ Stop</button> }</div>
                 <div class="inline-analogy"><span>◎</span><p>{{ selectedLesson().analogy }}</p></div>
-                <div class="audio-settings inline-audio-settings" aria-label="Audio settings"><span class="small-label">Audio</span>@if (availableVoices().length) { <select [value]="selectedVoiceName()" (change)="updateVoice($event)">@for (voice of availableVoices(); track voice.name) { <option [value]="voice.name">{{ voice.name }}</option> }</select> }<label>Speed <input type="range" min="0.7" max="1.1" step="0.02" [value]="speechRate()" (input)="updateSpeechRate($event)" /> <span>{{ speechRate().toFixed(2) }}x</span></label></div>
+        <div class="audio-settings inline-audio-settings" aria-label="Audio settings"><span class="small-label">Audio</span><span class="audio-unavailable">{{ voiceStatus() }}</span>@if (availableVoices().length) { <select [value]="selectedVoiceName()" (change)="updateVoice($event)">@for (voice of availableVoices(); track voice.name) { <option [value]="voice.name">{{ voice.name }}</option> }</select> }<label>Speed <input type="range" min="0.7" max="1.1" step="0.02" [value]="speechRate()" (input)="updateSpeechRate($event)" /> <span>{{ speechRate().toFixed(2) }}x</span></label></div>
                 @for (section of selectedLesson().sections; track section.title; let sectionIndex = $index) {
                   <section class="inline-section"><span class="detail-index">{{ (sectionIndex + 1).toString().padStart(2, '0') }}</span><div><div class="section-heading"><h4>{{ section.title }}</h4><button class="audio-button" type="button" (click)="listenToSection(sectionIndex)" [attr.aria-label]="speakingSection() === sectionIndex ? 'Stop listening' : 'Listen to this section'">{{ speakingSection() === sectionIndex ? '■ Stop' : '▶ Listen' }}</button></div><p>{{ section.explanation }}</p><pre><code>{{ section.example }}</code></pre>@if (section.notes) { <ul>@for (note of section.notes; track note) { <li>{{ note }}</li> }</ul> }<div class="inline-check"><span class="small-label">Check this section</span><button class="qa-question" type="button" [attr.aria-expanded]="expandedQuestionKey() === sectionQuestionKey(sectionIndex)" (click)="toggleQuestion(sectionQuestionKey(sectionIndex))"><strong>Q:</strong><span>{{ sectionQuestion(sectionIndex).question }}</span><b>{{ expandedQuestionKey() === sectionQuestionKey(sectionIndex) ? '−' : '+' }}</b></button>@if (expandedQuestionKey() === sectionQuestionKey(sectionIndex)) { <div class="qa-answer"><div class="section-options">@for (option of sectionQuestion(sectionIndex).options; track option; let optionIndex = $index) { <button type="button" [class.chosen]="answerFor(sectionQuestionKey(sectionIndex)) === optionIndex" [class.correct]="isAnswerChecked(sectionQuestionKey(sectionIndex)) && optionIndex === sectionQuestion(sectionIndex).answer" [class.incorrect]="isAnswerChecked(sectionQuestionKey(sectionIndex)) && answerFor(sectionQuestionKey(sectionIndex)) === optionIndex && optionIndex !== sectionQuestion(sectionIndex).answer" (click)="chooseAnswer(sectionQuestionKey(sectionIndex), optionIndex)"><span>{{ ['A', 'B', 'C'][optionIndex] }}</span>{{ option }}</button> }</div><button class="check-button" type="button" (click)="checkAnswer(sectionQuestionKey(sectionIndex))">Check answer <span>→</span></button>@if (isAnswerChecked(sectionQuestionKey(sectionIndex))) { <p class="inline-answer" [class.good]="answerFor(sectionQuestionKey(sectionIndex)) === sectionQuestion(sectionIndex).answer">{{ sectionQuestion(sectionIndex).explanation }}</p> }</div> }</div></div></section>
                 }
@@ -152,6 +152,7 @@
         <div class="section-map"><span>In this lesson</span><strong>{{ selectedLesson().sections.length }} detailed sections · {{ selectedLesson().questions.length }} questions</strong></div>
         <div class="audio-settings" aria-label="Audio settings">
           <span class="small-label">Audio voice</span>
+          <span class="audio-unavailable">{{ voiceStatus() }}</span>
           @if (availableVoices().length) { <select [value]="selectedVoiceName()" (change)="updateVoice($event)">@for (voice of availableVoices(); track voice.name) { <option [value]="voice.name">{{ voice.name }}</option> }</select> } @else { <span class="audio-unavailable">Browser voice loading...</span> }
           <label>Speed <input type="range" min="0.7" max="1.1" step="0.02" [value]="speechRate()" (input)="updateSpeechRate($event)" /> <span>{{ speechRate().toFixed(2) }}x</span></label>
         </div>

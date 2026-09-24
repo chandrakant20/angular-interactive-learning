@@ -7,6 +7,7 @@ import { interviewQuestions } from './interview-questions';
 import { webLessons } from './web-lessons';
 import { webTopicLessons } from './web-topic-lessons';
 import { realInterviewQuestions } from './real-interview-questions';
+import { nodeLessons } from './node-lessons';
 
 const baseLessons: Lesson[] = [
   { id: 1, level: 'Start here', title: 'What is Angular?', summary: 'Meet the framework and learn how an Angular app is assembled.', duration: '8 min', tag: 'Foundations', accent: 'coral', concept: 'Angular is a toolkit for building web applications with components, templates, and services. A component owns one small piece of the screen. Angular connects your TypeScript logic to HTML and keeps the view updated when data changes.', analogy: 'Think of an Angular app like a studio set. Components are the set pieces, templates are the stage directions, and the framework coordinates when everything should change.', example: `@Component({\n  selector: 'app-greeting',\n  template: '<h1>Hello, {{ name }}!</h1>'\n})\nexport class Greeting {\n  name = 'Ada';\n}`, takeaway: 'Angular gives structure to UI code so large apps stay understandable.', quiz: { question: 'What is the smallest reusable building block in Angular?', options: ['A component', 'A database', 'A route'], answer: 0 } },
@@ -35,7 +36,8 @@ export class App {
     ...baseLessons.map((lesson) => ({ ...lesson, track: 'Angular' as const })),
     ...additionalLessons.map((lesson) => ({ ...lesson, track: 'Angular' as const })),
     ...webLessons,
-    ...webTopicLessons
+    ...webTopicLessons,
+    ...nodeLessons
   ];
   readonly selectedId = signal(1);
   readonly activeTrack = signal<Lesson['track']>('Angular');
@@ -62,9 +64,10 @@ export class App {
   readonly availableVoices = signal<SpeechSynthesisVoice[]>([]);
   readonly selectedVoiceName = signal('');
   readonly speechRate = signal(0.88);
+  readonly voiceStatus = signal('Neural lesson audio is ready when an MP3 is available');
   private speech: SpeechSynthesisUtterance | null = null;
   private audio: HTMLAudioElement | null = null;
-  readonly tracks: Lesson['track'][] = ['Angular', 'HTML', 'CSS', 'JavaScript', 'TypeScript'];
+  readonly tracks: Lesson['track'][] = ['Angular', 'HTML', 'CSS', 'JavaScript', 'TypeScript', 'Node.js'];
   readonly filters = ['All', 'Start here', 'Build the basics', 'Build real apps', 'Go further'];
   readonly trackLessons = computed(() => this.lessons.filter((lesson) => lesson.track === this.activeTrack()));
   readonly completedInTrack = computed(() => this.trackLessons().filter((lesson) => this.completed().includes(lesson.id)).length);
@@ -239,34 +242,51 @@ export class App {
   }
 
   listenToSection(sectionIndex: number) {
-    const audioPath = `/audio/lesson-${this.selectedLesson().id}-section-${sectionIndex}.wav`;
-    if (typeof window !== 'undefined') {
-      this.audio?.pause();
-      this.audio = new Audio(audioPath);
-      this.audio.onended = () => this.speakingSection.set(null);
-      this.audio.onerror = () => {
-        this.audio = null;
-        this.speakSectionWithBrowserVoice(sectionIndex);
-      };
-      this.speakingSection.set(sectionIndex);
-      this.audioPaused.set(false);
-      this.audio.play().catch(() => this.speakSectionWithBrowserVoice(sectionIndex));
+    if (this.speakingSection() === sectionIndex) {
+      this.stopAudio();
       return;
     }
-    this.speakSectionWithBrowserVoice(sectionIndex);
+
+    this.stopAudio();
+    this.speakingSection.set(sectionIndex);
+    this.audioPaused.set(false);
+
+    this.playBundledAudio(sectionIndex);
+  }
+
+  private sectionSpeechText(sectionIndex: number) {
+    const section = this.selectedLesson().sections[sectionIndex];
+    return `${section.title}. ${section.explanation}. Example. ${section.example}`;
+  }
+
+  private playAudio(source: string, sectionIndex: number, fallback?: () => void) {
+    this.audio = new Audio(source);
+    this.audio.onended = () => this.stopAudio();
+    this.audio.onerror = () => {
+      this.audio = null;
+      fallback?.();
+    };
+    this.audio.play().catch(() => fallback?.());
+  }
+
+  private playBundledAudio(sectionIndex: number) {
+    if (typeof window === 'undefined') return this.speakSectionWithBrowserVoice(sectionIndex);
+    const basePath = `/audio/lesson-${this.selectedLesson().id}-section-${sectionIndex}`;
+    this.voiceStatus.set('Using generated neural voice audio');
+    this.playAudio(`${basePath}.mp3`, sectionIndex, () => {
+      this.voiceStatus.set('Using legacy audio — regenerate with Edge TTS for a natural voice');
+      this.playAudio(`${basePath}.wav`, sectionIndex, () => {
+        this.voiceStatus.set('Using browser voice — this lesson has no generated audio yet');
+        this.speakSectionWithBrowserVoice(sectionIndex);
+      });
+    });
   }
 
   private speakSectionWithBrowserVoice(sectionIndex: number) {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    if (this.speakingSection() === sectionIndex) {
-      window.speechSynthesis.cancel();
-      this.speakingSection.set(null);
-      return;
-    }
-
     window.speechSynthesis.cancel();
     const section = this.selectedLesson().sections[sectionIndex];
-    const text = `${section.title}. ${section.explanation}. Example. ${section.example}`;
+    const text = this.sectionSpeechText(sectionIndex);
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = this.speechRate();
     utterance.pitch = 0.96;
@@ -346,14 +366,15 @@ export class App {
   }
 
   private contentFor(lesson: Lesson): DetailedLessonContent {
-    if (detailedLessonContent[lesson.id]) return detailedLessonContent[lesson.id];
+    const detailed = detailedLessonContent[lesson.id];
+    if (detailed) return this.makeBeginnerFriendly(lesson, detailed);
     const guide = lessonGuides[lesson.id];
     const questions: LessonQuestion[] = [
       { ...lesson.quiz, explanation: 'The correct answer follows from the core concept in this lesson. Re-read the explanation and connect the syntax to the behavior it produces.' },
       { question: `What is the best way to learn ${lesson.title.toLowerCase()}?`, options: ['Read the idea, run the example, then change it', 'Memorize the API without trying it', 'Skip the example and copy a library'], answer: 0, explanation: 'Angular becomes easier when you connect the concept to a small working experiment and then observe what changes.' },
       { question: `Which habit helps when using ${lesson.title.toLowerCase()} in a real application?`, options: ['Model loading, error, and edge states', 'Only design the happy path', 'Put all logic in one component'], answer: 0, explanation: 'Production code needs explicit states, clear ownership, and small responsibilities.' }
     ];
-    return {
+    return this.makeBeginnerFriendly(lesson, {
       sections: [
         { title: 'Core concept', explanation: lesson.concept, example: lesson.example },
         { title: 'Detailed explanation', explanation: guide?.deepDive ?? lesson.concept, example: guide?.deepExample ?? lesson.example, notes: guide?.pitfalls },
@@ -361,6 +382,29 @@ export class App {
         { title: 'Common mistakes', explanation: 'These are the mistakes that commonly make this topic confusing or fragile. Treat them as a debugging checklist when your feature behaves unexpectedly.', example: (guide?.pitfalls ?? ['Skipping the edge cases.', 'Putting unrelated work in the component.', 'Testing only the happy path.']).map((pitfall) => `• ${pitfall}`).join('\n') }
       ],
       questions
+    });
+  }
+
+  /** Gives every topic the same calm on-ramp, even when its detailed material is advanced. */
+  private makeBeginnerFriendly(lesson: Lesson, content: DetailedLessonContent): DetailedLessonContent {
+    const firstIdea = lesson.concept.split(/(?<=[.!?])\s/)[0];
+    return {
+      sections: [
+        {
+          title: 'Start here — the simple idea',
+          explanation: `${firstIdea} You do not need to memorize every word yet. First identify what problem this topic solves, run the smallest example, and notice one result.`,
+          example: `1. Read the example below without changing it.\n2. Run it or paste it into a small practice project.\n3. Change one value, then predict what will happen.\n4. Compare your prediction with the result.`,
+          notes: ['Learn one idea at a time; unfamiliar words can wait until the example works.', 'If you get stuck, return to this section and repeat the smallest working step.']
+        },
+        ...content.sections,
+        {
+          title: 'Practice it in 10 minutes',
+          explanation: `Make a tiny version of ${lesson.title.toLowerCase()} yourself. Do not copy a whole project: write the smallest example, change it, break it safely, and fix it. That loop builds understanding faster than rereading.`,
+          example: `• Copy the lesson example into your own file.\n• Change one name, value, or condition.\n• Add one extra case (empty input, error, or second item).\n• Explain out loud what changed and why.`,
+          notes: ['Aim for progress, not perfection.', 'Keep a “questions” note for terms to revisit after the basics feel natural.']
+        }
+      ],
+      questions: content.questions
     };
   }
 
